@@ -5,7 +5,8 @@ An offline iPhone app (a PWA) for planning and tracking weekly training around i
 - A week view in the style of Google Calendar that runs **Sunday → Saturday**, with Friday and Saturday shaded as the weekend.
 - Tap an empty slot, or **+**, to book a session. Tap a session to edit it.
 - Tag each session with the **body area or injury** it affects. You can add your own areas.
-- Mark each session **Planned / Done / Skipped** and add a reason when you skip one. Planned sessions in the past get an amber outline so you notice them.
+- Pick a session from grouped presets — **Training**, **Sports** (football, padel tennis, tennis, squash…), **Tendon rehab** (functional training, isometrics, eccentric loading, heavy slow resistance…) and **Recovery** (ice pack, physio at the clinic, massage, stretching…) — or type your own.
+- Mark each session **Planned / Done / Skipped** and add a reason when you skip one. When it's **Done**, record **pain after the session (1–10)**; it shows as a coloured badge on the calendar and the footer shows the week's average and max. Planned sessions in the past get an amber outline so you notice them.
 - The footer shows the week's totals and which areas were hit most.
 - Swipe left or right to change weeks. **⋯** opens three options: copy last week's plan, export a backup, or import a backup.
 - Data is stored only on the phone (`localStorage`). There is no account, no server and no internet needed after the first load.

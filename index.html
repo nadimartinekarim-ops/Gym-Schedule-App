@@ -51,9 +51,9 @@
     <form id="form" class="sheet-body" autocomplete="off">
       <label class="field">
         <span>Session</span>
-        <input id="fTitle" type="text" placeholder="e.g. Upper body, Physio, Swim" maxlength="60">
+        <input id="fTitle" type="text" placeholder="Pick below or type your own" maxlength="60">
       </label>
-      <div class="chips" id="titleChips"></div>
+      <div class="chip-groups" id="titleChips"></div>
 
       <div class="row">
         <label class="field grow">
@@ -98,6 +98,11 @@
           <button type="button" data-v="done">Done</button>
           <button type="button" data-v="skipped">Skipped</button>
         </div>
+      </div>
+      <div class="field" id="painField" hidden>
+        <span>Pain after session <em id="painValue" class="pain-value"></em></span>
+        <div class="pain-scale" id="painScale"></div>
+        <div class="pain-legend"><span>1 · none</span><span>10 · worst</span></div>
       </div>
       <label class="field" id="reasonField" hidden>
         <span>Why skipped?</span>

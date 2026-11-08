@@ -156,7 +156,7 @@ h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
   z-index: 2; text-align: left; cursor: pointer;
 }
 .ev .t {
-  font-weight: 600; overflow: hidden; word-break: break-word; hyphens: auto;
+  font-weight: 600; overflow: hidden; overflow-wrap: anywhere; -webkit-hyphens: auto; hyphens: auto;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
 }
 .ev .m { display: block; color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -232,6 +232,25 @@ h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
   background: var(--bg);
 }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.chip-groups { display: flex; flex-direction: column; gap: 10px; margin-top: -4px; }
+.chip-group .chips { margin-top: 0; }
+.chip-group-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+
+.pain-value { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 6px; color: var(--text); }
+.pain-scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.pain-btn {
+  aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); font-size: 15px; font-weight: 600; min-width: 0;
+}
+.pain-btn.on { color: #fff; border-color: transparent; transform: scale(1.06); }
+.pain-legend { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+.ev .pain {
+  display: inline-block; color: #fff; border-radius: 4px; padding: 0 3px; margin-left: 2px;
+  font-size: 9px; line-height: 13px; font-weight: 700;
+}
+.ev.cat-recovery:not(.done):not(.skipped) { border-left-style: dashed; }
+
 .add-area { display: flex; gap: 8px; margin-top: 4px; }
 .add-area input { flex: 1; }
 

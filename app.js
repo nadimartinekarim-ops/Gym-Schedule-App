@@ -8,7 +8,25 @@ const AREAS_KEY = 'trainingweek.areas.v1';
 const WEEK_START = 0; // 0 = Sunday
 const WEEKEND = [5, 6]; // Friday, Saturday
 const DEFAULT_AREAS = ['Knee', 'Lower back', 'Shoulder', 'Ankle', 'Hip', 'Neck', 'Wrist'];
-const TITLE_PRESETS = ['Strength', 'Cardio', 'Mobility', 'Physio', 'Swim', 'Rest / recovery'];
+const CATEGORIES = [
+  { id: 'training', label: 'Training', icon: '🏋️',
+    items: ['Strength', 'Cardio', 'Mobility', 'Swim', 'Running', 'Cycling'] },
+  { id: 'sport', label: 'Sports', icon: '⚽',
+    items: ['Football', 'Padel tennis', 'Tennis', 'Squash', 'Basketball', 'Volleyball'] },
+  { id: 'tendon', label: 'Tendon rehab', icon: '🦵',
+    items: ['Functional training (tendon)', 'Isometrics', 'Eccentric loading', 'Heavy slow resistance', 'Plyometric return'] },
+  { id: 'recovery', label: 'Recovery', icon: '🧊',
+    items: ['Ice pack', 'Physio (clinic)', 'Home physio exercises', 'Massage', 'Stretching', 'Foam rolling', 'Heat / sauna', 'Rest day'] },
+];
+const CAT_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+function inferCategory(title) {
+  const t = (title || '').trim().toLowerCase();
+  const hit = CATEGORIES.find((c) => c.items.some((i) => i.toLowerCase() === t));
+  return hit ? hit.id : 'other';
+}
+const catOf = (s) => (s.category && CAT_BY_ID[s.category] ? s.category : inferCategory(s.title));
+// Pain colour from green (1) to red (10).
+const painColor = (p) => `hsl(${Math.round(130 - (p - 1) * (130 / 9))} 70% 45%)`;
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
   'August', 'September', 'October', 'November', 'December'];
@@ -153,8 +171,12 @@ function drawEvent(col, s, lane, lanes, hh) {
   el.style.top = `${(s.start / 60) * hh + 1}px`;
   el.style.height = `${Math.max((s.duration / 60) * hh - 2, 18)}px`;
   const areaTxt = s.areas && s.areas.length ? s.areas.join(', ') : '';
+  const cat = CAT_BY_ID[catOf(s)];
+  el.classList.add(`cat-${catOf(s)}`);
+  const pain = s.status === 'done' && s.pain
+    ? ` <b class="pain" style="background:${painColor(s.pain)}">${s.pain}</b>` : '';
   el.innerHTML =
-    `<span class="t"></span><span class="m">${fmtTime(s.start)}</span>` +
+    `<span class="t"></span><span class="m">${cat ? cat.icon + ' ' : ''}${fmtTime(s.start)}${pain}</span>` +
     (areaTxt ? `<span class="a"></span>` : '');
   el.querySelector('.t').textContent = s.title || 'Session';
   if (areaTxt) el.querySelector('.a').textContent = '⚕ ' + areaTxt;
@@ -169,9 +191,11 @@ function renderSummary() {
   const c = { planned: 0, done: 0, skipped: 0 };
   const areaCount = {};
   let doneMin = 0;
+  const pains = [];
   wk.forEach((s) => {
     c[s.status]++;
     if (s.status === 'done') doneMin += s.duration;
+    if (s.status === 'done' && s.pain) pains.push(s.pain);
     (s.areas || []).forEach((a) => { areaCount[a] = (areaCount[a] || 0) + 1; });
   });
   const sum = $('summary');
@@ -186,6 +210,9 @@ function renderSummary() {
     `<span><i class="dot" style="background:var(--done)"></i><b>${c.done}</b> done${doneMin ? ` (${h ? h + 'h ' : ''}${m ? m + 'm' : ''})`.replace(' )', ')') : ''}</span>` +
     `<span><i class="dot" style="background:var(--planned)"></i><b>${c.planned}</b> planned</span>` +
     `<span><i class="dot" style="background:var(--skipped)"></i><b>${c.skipped}</b> skipped</span>` +
+    (pains.length
+      ? `<span>Pain avg <b>${(pains.reduce((a, b) => a + b, 0) / pains.length).toFixed(1)}</b> · max <b style="color:${painColor(Math.max(...pains))}">${Math.max(...pains)}</b></span>`
+      : '') +
     (top ? `<span>⚕ ${top}</span>` : '');
 }
 
@@ -200,8 +227,9 @@ function openEditor(existing, preset) {
     ? { ...existing, areas: [...(existing.areas || [])] }
     : {
       id: uid(), title: '', date: preset.date, start: preset.start,
-      duration: 60, areas: [], status: 'planned', reason: '',
+      duration: 60, areas: [], status: 'planned', reason: '', category: '', pain: null,
     };
+  if (draft.pain === undefined) draft.pain = null;
   $('sheetTitle').textContent = existing ? 'Edit session' : 'New session';
   $('fTitle').value = draft.title;
   $('fDate').value = draft.date;
@@ -225,14 +253,43 @@ function openEditor(existing, preset) {
 function renderTitleChips() {
   const box = $('titleChips');
   box.innerHTML = '';
-  TITLE_PRESETS.forEach((t) => {
+  const current = $('fTitle').value;
+  CATEGORIES.forEach((c) => {
+    const group = document.createElement('div');
+    group.className = 'chip-group';
+    const h = document.createElement('div');
+    h.className = 'chip-group-label';
+    h.textContent = `${c.icon} ${c.label}`;
+    group.appendChild(h);
+    const row = document.createElement('div');
+    row.className = 'chips';
+    c.items.forEach((t) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (current === t ? ' on' : '');
+      b.textContent = t;
+      b.onclick = () => { $('fTitle').value = t; draft.category = c.id; renderTitleChips(); };
+      row.appendChild(b);
+    });
+    group.appendChild(row);
+    box.appendChild(group);
+  });
+}
+
+function renderPain() {
+  const box = $('painScale');
+  box.innerHTML = '';
+  for (let p = 1; p <= 10; p++) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'chip' + ($('fTitle').value === t ? ' on' : '');
-    b.textContent = t;
-    b.onclick = () => { $('fTitle').value = t; renderTitleChips(); };
+    b.textContent = p;
+    b.className = 'pain-btn' + (draft.pain === p ? ' on' : '');
+    if (draft.pain === p) b.style.background = painColor(p);
+    b.setAttribute('aria-label', `Pain ${p} of 10`);
+    b.onclick = () => { draft.pain = draft.pain === p ? null : p; renderPain(); };
     box.appendChild(b);
-  });
+  }
+  $('painValue').textContent = draft.pain ? `${draft.pain}/10` : 'not recorded';
 }
 
 function renderAreaChips() {
@@ -257,6 +314,8 @@ function renderStatus() {
     b.classList.toggle('on', b.dataset.v === draft.status);
   });
   $('reasonField').hidden = draft.status !== 'skipped';
+  $('painField').hidden = draft.status !== 'done';
+  renderPain();
 }
 
 function addArea() {
@@ -275,6 +334,10 @@ function saveDraft() {
   draft.start = $('fStart').value ? toMin($('fStart').value) : draft.start;
   draft.duration = Number($('fDur').value);
   draft.reason = draft.status === 'skipped' ? $('fReason').value.trim() : '';
+  if (draft.status !== 'done') draft.pain = null;
+  // A typed title that matches a preset gets that preset's category; otherwise keep a tapped chip's category.
+  const inferred = inferCategory(draft.title);
+  if (inferred !== 'other' || !draft.category) draft.category = inferred;
   if (!draft.date) { toast('Pick a date'); return; }
   if (draft.start + draft.duration > 24 * 60) draft.duration = 24 * 60 - draft.start;
 
@@ -321,7 +384,7 @@ function copyLastWeek() {
     const date = ymd(addDays(parseYmd(s.date), 7));
     if (exists(s, date)) return;
     sessions.push({ id: uid(), title: s.title, date, start: s.start, duration: s.duration,
-      areas: [...(s.areas || [])], status: 'planned', reason: '' });
+      areas: [...(s.areas || [])], status: 'planned', reason: '', category: catOf(s), pain: null });
     added++;
   });
   persist();
@@ -357,6 +420,8 @@ function importData(file) {
         areas: Array.isArray(s.areas) ? s.areas.map(String) : [],
         status: ['planned', 'done', 'skipped'].includes(s.status) ? s.status : 'planned',
         reason: String(s.reason || ''),
+        category: CAT_BY_ID[s.category] ? s.category : inferCategory(s.title),
+        pain: Number.isInteger(s.pain) && s.pain >= 1 && s.pain <= 10 ? s.pain : null,
       }));
       if (Array.isArray(data.areas)) areas = data.areas.map(String);
       persist(); persistAreas();
