@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Training Week</title>
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Training">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1 id="monthLabel">Training</h1>
+      <div class="actions">
+        <button id="todayBtn" class="pill">Today</button>
+        <button id="prevBtn" class="icon-btn" aria-label="Previous week">&#8249;</button>
+        <button id="nextBtn" class="icon-btn" aria-label="Next week">&#8250;</button>
+        <button id="menuBtn" class="icon-btn" aria-label="Menu">&#8943;</button>
+      </div>
+    </div>
+    <div class="day-head" id="dayHead"></div>
+  </header>
+
+  <main id="scroller" class="scroller">
+    <div class="grid" id="grid">
+      <div class="gutter" id="gutter"></div>
+      <div class="days" id="days"></div>
+    </div>
+  </main>
+
+  <footer class="summary" id="summary"></footer>
+
+  <button id="addBtn" class="fab" aria-label="Book a session">+</button>
+
+  <!-- Session editor sheet -->
+  <div class="backdrop" id="backdrop" hidden></div>
+  <section class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-bar">
+      <button id="cancelBtn" class="text-btn">Cancel</button>
+      <h2 id="sheetTitle">New session</h2>
+      <button id="saveBtn" class="text-btn strong">Save</button>
+    </div>
+    <form id="form" class="sheet-body" autocomplete="off">
+      <label class="field">
+        <span>Session</span>
+        <input id="fTitle" type="text" placeholder="e.g. Upper body, Physio, Swim" maxlength="60">
+      </label>
+      <div class="chips" id="titleChips"></div>
+
+      <div class="row">
+        <label class="field grow">
+          <span>Date</span>
+          <input id="fDate" type="date" required>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field grow">
+          <span>Start</span>
+          <input id="fStart" type="time" step="900" required>
+        </label>
+        <label class="field grow">
+          <span>Duration</span>
+          <select id="fDur">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">1 h</option>
+            <option value="75">1 h 15</option>
+            <option value="90">1 h 30</option>
+            <option value="120">2 h</option>
+            <option value="150">2 h 30</option>
+            <option value="180">3 h</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field">
+        <span>Body area / injury affected</span>
+        <div class="chips" id="areaChips"></div>
+        <div class="add-area">
+          <input id="newArea" type="text" placeholder="Add area (e.g. Left knee)" maxlength="30">
+          <button type="button" id="addAreaBtn" class="pill">Add</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span>Status</span>
+        <div class="segmented" id="statusSeg">
+          <button type="button" data-v="planned">Planned</button>
+          <button type="button" data-v="done">Done</button>
+          <button type="button" data-v="skipped">Skipped</button>
+        </div>
+      </div>
+      <label class="field" id="reasonField" hidden>
+        <span>Why skipped?</span>
+        <input id="fReason" type="text" placeholder="e.g. Knee flared up" maxlength="120">
+      </label>
+
+      <button type="button" id="deleteBtn" class="danger" hidden>Delete session</button>
+    </form>
+  </section>
+
+  <!-- Menu sheet -->
+  <section class="sheet small" id="menu" hidden role="dialog" aria-modal="true">
+    <div class="sheet-bar">
+      <span></span><h2>Data</h2><button id="menuClose" class="text-btn">Done</button>
+    </div>
+    <div class="sheet-body">
+      <p class="hint">Everything is stored only on this phone. Export a backup now and then so you don't lose your history.</p>
+      <button id="copyWeekBtn" class="menu-item">Copy last week's plan into this week</button>
+      <button id="exportBtn" class="menu-item">Export backup (.json)</button>
+      <label class="menu-item file">Import backup
+        <input id="importInput" type="file" accept="application/json,.json">
+      </label>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
