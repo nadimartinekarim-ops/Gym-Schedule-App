@@ -325,3 +325,15 @@ h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
   display: inline-block; border-radius: 4px; padding: 0 3px; margin-left: 2px;
   font-size: 9px; line-height: 13px; font-weight: 700; background: var(--accent); color: var(--accent-text);
 }
+
+/* Always-visible save button at the bottom of the session sheet (iOS can hide the top bar). */
+#sheet .sheet-body { padding-bottom: 16px; }
+.sheet-foot {
+  flex: none; padding: 10px 16px calc(10px + var(--safe-bottom));
+  border-top: 1px solid var(--line); background: var(--sheet);
+}
+.save-big {
+  width: 100%; padding: 14px; border-radius: 12px; font-size: 17px; font-weight: 600;
+  background: var(--accent); color: var(--accent-text);
+}
+.save-big:active { transform: scale(.98); }

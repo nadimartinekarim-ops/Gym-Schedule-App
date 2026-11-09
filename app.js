@@ -284,7 +284,7 @@ function openEditor(existing, preset) {
   renderStatus();
   renderStrength();
   showSheet('sheet');
-  if (!existing) setTimeout(() => $('fTitle').focus(), 250);
+  $('sheet').querySelector('.sheet-body').scrollTop = 0;
 }
 
 function renderTitleChips() {
@@ -629,6 +629,7 @@ $('menuClose').onclick = closeSheets;
 $('backdrop').onclick = closeSheets;
 $('cancelBtn').onclick = closeSheets;
 $('saveBtn').onclick = saveDraft;
+$('saveBigBtn').onclick = saveDraft;
 $('form').onsubmit = (e) => { e.preventDefault(); saveDraft(); };
 $('deleteBtn').onclick = deleteDraft;
 $('addAreaBtn').onclick = addArea;
