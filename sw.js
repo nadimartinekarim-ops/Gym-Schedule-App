@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever any app file changes so phones pick up the update.
-const VERSION = 'training-week-v2';
+const VERSION = 'training-week-v3';
 const ASSETS = [
   './',
   './index.html',

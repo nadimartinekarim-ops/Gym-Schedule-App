@@ -280,3 +280,48 @@ h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 }
 
 [hidden] { display: none !important; }
+
+/* ---------- Strength split + checklist ---------- */
+.split-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.split-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative;
+  padding: 10px 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); min-width: 0;
+}
+.split-btn .si { font-size: 20px; line-height: 1; }
+.split-btn b { font-size: 14px; }
+.split-btn small { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.25; }
+.split-btn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.split-btn.on small { color: var(--accent-text); opacity: .85; }
+.split-btn.rec::after {
+  content: "★"; position: absolute; top: 4px; right: 7px; font-size: 11px; color: #f5a623;
+}
+.split-hint { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+.progress { height: 6px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.progress i { display: block; height: 100%; width: 0; background: var(--done); transition: width .25s ease; }
+.checklist { display: flex; flex-direction: column; gap: 6px; }
+.ex {
+  display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px;
+  background: var(--surface); transition: opacity .2s;
+}
+.ex .tick {
+  flex: none; width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--line); background: var(--bg); color: #fff; font-size: 15px; font-weight: 700;
+}
+.ex.done .tick { background: var(--done); border-color: var(--done); }
+.ex-main { flex: 1; min-width: 0; cursor: pointer; }
+.ex-name { font-size: 15px; font-weight: 600; }
+.ex.done .ex-name { text-decoration: line-through; color: var(--muted); }
+.ex-sets { font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 1px; }
+.ex-cue { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.ex.done .ex-cue { display: none; }
+.ex-w { flex: none; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ex-w input {
+  width: 100%; padding: 7px 4px; text-align: center; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); font-size: 16px;
+}
+.ex-w small { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.ev .prog {
+  display: inline-block; border-radius: 4px; padding: 0 3px; margin-left: 2px;
+  font-size: 9px; line-height: 13px; font-weight: 700; background: var(--accent); color: var(--accent-text);
+}

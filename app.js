@@ -19,6 +19,37 @@ const CATEGORIES = [
     items: ['Ice pack', 'Physio (clinic)', 'Home physio exercises', 'Massage', 'Stretching', 'Foam rolling', 'Heat / sauna', 'Rest day'] },
 ];
 const CAT_BY_ID = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+
+/* Shoulder-safe 3-day split (tendon inflammation + padel). Shown only for "Strength" sessions. */
+const SPLITS = [
+  { id: 'd1', label: 'Day 1', name: 'Chest + Back', icon: '💪', upper: true, items: [
+    { id: 'row', name: 'Seated row machine', sets: '4 × 8–10', cue: 'Pull first to warm the shoulder. Squeeze blades, hold 1 s.' },
+    { id: 'cpress', name: 'Chest press machine', sets: '4 × 8–10', cue: 'Stop when hands reach chest level. 3 s on the way back.' },
+    { id: 'pulldown', name: 'Lat pulldown (neutral grip)', sets: '3 × 10–12', cue: 'Palms facing. No full overhead stretch at the top.' },
+    { id: 'fly', name: 'Cable fly (mid height)', sets: '3 × 12–15', cue: 'Small range — hands never behind your body.' },
+    { id: 'sapd', name: 'Cable straight-arm pulldown', sets: '3 × 12–15', cue: 'Start below shoulder height, arms straight.' },
+  ] },
+  { id: 'd2', label: 'Day 2', name: 'Shoulder health + Arms', icon: '🛡️', upper: true, items: [
+    { id: 'facepull', name: 'Cable face pull (rope)', sets: '3 × 12–15', cue: 'First, while fresh. Pull rope apart toward ears.' },
+    { id: 'extrot', name: 'Cable external rotation', sets: '3 × 12–15 / side', cue: 'Elbow pinned to side (towel under it). Rotate out slowly.' },
+    { id: 'latraise', name: 'Cable lateral raise', sets: '3 × 12–15 / side', cue: 'Very light, arms slightly forward, stop at shoulder height.' },
+    { id: 'curl', name: 'Cable curl (straight bar)', sets: '3 × 10–12', cue: 'Elbows fixed at your sides.' },
+    { id: 'pushdown', name: 'Cable triceps pushdown (rope)', sets: '3 × 10–12', cue: 'Elbows tucked, spread the rope at the bottom.' },
+    { id: 'hammer', name: 'Cable hammer curl (rope)', sets: '2 × 12', cue: 'Palms facing. Builds grip for padel.' },
+    { id: 'sapush', name: 'Single-arm cable pushdown', sets: '2 × 12 / side', cue: 'Replaces overhead extension — no overhead load.' },
+  ] },
+  { id: 'd3', label: 'Day 3', name: 'Legs + Core', icon: '🦵', upper: false, items: [
+    { id: 'legpress', name: 'Leg press', sets: '4 × 8–12', cue: 'Knees to ~90°, lower back stays on the pad.' },
+    { id: 'legext', name: 'Leg extension', sets: '3 × 12–15', cue: 'Pause 1 s at the top, lower slowly.' },
+    { id: 'legcurl', name: 'Leg curl machine', sets: '3 × 10–12', cue: 'Control the way back.' },
+    { id: 'calf', name: 'Calf raise on leg press', sets: '4 × 12–15', cue: 'Full stretch, full squeeze.' },
+    { id: 'crunch', name: 'Cable crunch (kneeling)', sets: '3 × 12–15', cue: 'Elbows toward knees, hips stay still.' },
+    { id: 'rotation', name: 'Horizontal cable rotation', sets: '3 × 12 / side', cue: 'Chest height, arms long, rotate through hips.' },
+  ] },
+];
+const SPLIT_BY_ID = Object.fromEntries(SPLITS.map((s) => [s.id, s]));
+const isStrength = (title) => (title || '').trim().toLowerCase() === 'strength';
+const isPadel = (title) => /padel/i.test(title || '');
 function inferCategory(title) {
   const t = (title || '').trim().toLowerCase();
   const hit = CATEGORIES.find((c) => c.items.some((i) => i.toLowerCase() === t));
@@ -175,10 +206,13 @@ function drawEvent(col, s, lane, lanes, hh) {
   el.classList.add(`cat-${catOf(s)}`);
   const pain = s.status === 'done' && s.pain
     ? ` <b class="pain" style="background:${painColor(s.pain)}">${s.pain}</b>` : '';
+  const split = s.split && SPLIT_BY_ID[s.split];
+  const prog = split && s.status === 'planned' && doneCount(s)
+    ? ` <b class="prog">${doneCount(s)}/${split.items.length}</b>` : '';
   el.innerHTML =
-    `<span class="t"></span><span class="m">${cat ? cat.icon + ' ' : ''}${fmtTime(s.start)}${pain}</span>` +
+    `<span class="t"></span><span class="m">${cat ? cat.icon + ' ' : ''}${fmtTime(s.start)}${pain}${prog}</span>` +
     (areaTxt ? `<span class="a"></span>` : '');
-  el.querySelector('.t').textContent = s.title || 'Session';
+  el.querySelector('.t').textContent = split ? split.name : (s.title || 'Session');
   if (areaTxt) el.querySelector('.a').textContent = '⚕ ' + areaTxt;
   el.setAttribute('aria-label', `${s.title || 'Session'} ${fmtTime(s.start)} ${s.status}`);
   el.addEventListener('click', (e) => { e.stopPropagation(); openEditor(s); });
@@ -224,12 +258,14 @@ function escapeHtml(s) {
 function openEditor(existing, preset) {
   editing = existing || null;
   draft = existing
-    ? { ...existing, areas: [...(existing.areas || [])] }
+    ? { ...existing, areas: [...(existing.areas || [])], log: cloneLog(existing.log) }
     : {
       id: uid(), title: '', date: preset.date, start: preset.start,
       duration: 60, areas: [], status: 'planned', reason: '', category: '', pain: null,
+      split: null, log: {},
     };
   if (draft.pain === undefined) draft.pain = null;
+  if (draft.split === undefined) draft.split = null;
   $('sheetTitle').textContent = existing ? 'Edit session' : 'New session';
   $('fTitle').value = draft.title;
   $('fDate').value = draft.date;
@@ -246,6 +282,7 @@ function openEditor(existing, preset) {
   renderTitleChips();
   renderAreaChips();
   renderStatus();
+  renderStrength();
   showSheet('sheet');
   if (!existing) setTimeout(() => $('fTitle').focus(), 250);
 }
@@ -268,12 +305,128 @@ function renderTitleChips() {
       b.type = 'button';
       b.className = 'chip' + (current === t ? ' on' : '');
       b.textContent = t;
-      b.onclick = () => { $('fTitle').value = t; draft.category = c.id; renderTitleChips(); };
+      b.onclick = () => { $('fTitle').value = t; draft.category = c.id; renderTitleChips(); renderStrength(); };
       row.appendChild(b);
     });
     group.appendChild(row);
     box.appendChild(group);
   });
+}
+
+/* ---------- Strength split + checklist ---------- */
+const cloneLog = (log) => Object.fromEntries(Object.entries(log || {}).map(([k, v]) => [k, { ...v }]));
+function doneCount(s) {
+  const split = SPLIT_BY_ID[s.split];
+  if (!split) return 0;
+  return split.items.filter((it) => s.log && s.log[it.id] && s.log[it.id].done).length;
+}
+const sortKey = (s) => `${s.date} ${pad(Math.floor(s.start / 60))}${pad(s.start % 60)}`;
+
+// Next split in rotation after the last completed one; switch to legs if padel is within 24 h.
+function suggestSplit(date, start) {
+  const me = sortKey({ date, start });
+  const past = sessions
+    .filter((s) => s.id !== draft.id && s.split && s.status === 'done' && sortKey(s) < me)
+    .sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1));
+  const order = SPLITS.map((s) => s.id);
+  const next = past.length ? order[(order.indexOf(past[0].split) + 1) % order.length] : 'd1';
+  const t0 = parseYmd(date).getTime() + start * 60000;
+  const padel = sessions.find((s) => {
+    if (!isPadel(s.title) || s.status === 'skipped') return false;
+    const t = parseYmd(s.date).getTime() + s.start * 60000;
+    return t > t0 && t - t0 <= 24 * 3600000;
+  });
+  if (padel && SPLIT_BY_ID[next].upper) {
+    return { id: 'd3', why: `Padel within 24 h — legs today keeps your shoulder fresh (rotation says ${SPLIT_BY_ID[next].label}).` };
+  }
+  return { id: next, why: past.length ? `Next in rotation after ${SPLIT_BY_ID[past[0].split].label}.` : 'Start of the rotation.' };
+}
+
+// Most recent weight logged for an exercise in an earlier session of the same split.
+function lastWeight(splitId, exId) {
+  const me = sortKey(draft);
+  const prev = sessions
+    .filter((s) => s.id !== draft.id && s.split === splitId && s.log && s.log[exId] && s.log[exId].w && sortKey(s) < me)
+    .sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1))[0];
+  return prev ? prev.log[exId].w : '';
+}
+
+function renderStrength() {
+  if (!draft) return;
+  const on = isStrength($('fTitle').value);
+  $('splitField').hidden = !on;
+  if (!on) { $('checkField').hidden = true; return; }
+  const sug = suggestSplit($('fDate').value || draft.date, $('fStart').value ? toMin($('fStart').value) : draft.start);
+  if (!draft.split) draft.split = sug.id;
+  const box = $('splitPick');
+  box.innerHTML = '';
+  SPLITS.forEach((sp) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'split-btn' + (draft.split === sp.id ? ' on' : '') + (sug.id === sp.id ? ' rec' : '');
+    b.innerHTML = `<span class="si">${sp.icon}</span><b>${sp.label}</b><small></small>`;
+    b.querySelector('small').textContent = sp.name;
+    b.onclick = () => {
+      if (draft.split !== sp.id && doneCount(draft) && !confirm('Switch split? Ticks on this session will be cleared.')) return;
+      if (draft.split !== sp.id) draft.log = {};
+      draft.split = sp.id; renderStrength();
+    };
+    box.appendChild(b);
+  });
+  $('splitHint').textContent = `★ Suggested: ${SPLIT_BY_ID[sug.id].label} — ${sug.why}`;
+  renderChecklist();
+}
+
+function renderChecklist() {
+  const split = SPLIT_BY_ID[draft.split];
+  $('checkField').hidden = !split;
+  if (!split) return;
+  const list = $('checklist');
+  list.innerHTML = '';
+  split.items.forEach((it, i) => {
+    const entry = draft.log[it.id] || {};
+    const row = document.createElement('div');
+    row.className = 'ex' + (entry.done ? ' done' : '');
+    row.innerHTML =
+      `<button type="button" class="tick" aria-label="Mark done">${entry.done ? '✓' : ''}</button>` +
+      `<div class="ex-main"><div class="ex-name"></div><div class="ex-sets"></div><div class="ex-cue"></div></div>` +
+      `<label class="ex-w"><input type="text" inputmode="decimal" maxlength="6" placeholder="kg"><small></small></label>`;
+    row.querySelector('.ex-name').textContent = `${i + 1}. ${it.name}`;
+    row.querySelector('.ex-sets').textContent = it.sets;
+    row.querySelector('.ex-cue').textContent = it.cue;
+    const last = lastWeight(split.id, it.id);
+    row.querySelector('small').textContent = last ? `last ${last}` : '';
+    const inp = row.querySelector('input');
+    inp.value = entry.w || '';
+    inp.oninput = () => {
+      draft.log[it.id] = { ...(draft.log[it.id] || {}), w: inp.value.trim() };
+    };
+    const toggle = () => {
+      const cur = draft.log[it.id] || {};
+      draft.log[it.id] = { ...cur, done: !cur.done };
+      afterTick();
+    };
+    row.querySelector('.tick').onclick = toggle;
+    row.querySelector('.ex-main').onclick = toggle;
+    list.appendChild(row);
+  });
+  const n = doneCount(draft), total = split.items.length;
+  $('checkCount').textContent = `${n}/${total}`;
+  $('checkBar').style.width = `${(n / total) * 100}%`;
+}
+
+function afterTick() {
+  const split = SPLIT_BY_ID[draft.split];
+  const all = doneCount(draft) === split.items.length;
+  if (all && draft.status !== 'done') {
+    draft.status = 'done';
+    renderStatus();
+    toast(split.upper ? 'Workout complete 💪 Log your shoulder pain below' : 'Workout complete 💪 Log your pain below');
+  } else if (!all && draft.status === 'done' && doneCount(draft) === 0) {
+    draft.status = 'planned';
+    renderStatus();
+  }
+  renderChecklist();
 }
 
 function renderPain() {
@@ -335,6 +488,10 @@ function saveDraft() {
   draft.duration = Number($('fDur').value);
   draft.reason = draft.status === 'skipped' ? $('fReason').value.trim() : '';
   if (draft.status !== 'done') draft.pain = null;
+  if (isStrength(draft.title) && SPLIT_BY_ID[draft.split]) {
+    // Keep only entries with a tick or a weight.
+    draft.log = Object.fromEntries(Object.entries(draft.log || {}).filter(([, v]) => v.done || v.w));
+  } else { draft.split = null; draft.log = {}; }
   // A typed title that matches a preset gets that preset's category; otherwise keep a tapped chip's category.
   const inferred = inferCategory(draft.title);
   if (inferred !== 'other' || !draft.category) draft.category = inferred;
@@ -384,7 +541,8 @@ function copyLastWeek() {
     const date = ymd(addDays(parseYmd(s.date), 7));
     if (exists(s, date)) return;
     sessions.push({ id: uid(), title: s.title, date, start: s.start, duration: s.duration,
-      areas: [...(s.areas || [])], status: 'planned', reason: '', category: catOf(s), pain: null });
+      areas: [...(s.areas || [])], status: 'planned', reason: '', category: catOf(s), pain: null,
+      split: s.split || null, log: {} });
     added++;
   });
   persist();
@@ -422,6 +580,12 @@ function importData(file) {
         reason: String(s.reason || ''),
         category: CAT_BY_ID[s.category] ? s.category : inferCategory(s.title),
         pain: Number.isInteger(s.pain) && s.pain >= 1 && s.pain <= 10 ? s.pain : null,
+        split: SPLIT_BY_ID[s.split] ? s.split : null,
+        log: SPLIT_BY_ID[s.split] && s.log && typeof s.log === 'object'
+          ? Object.fromEntries(Object.entries(s.log)
+            .filter(([k, v]) => SPLIT_BY_ID[s.split].items.some((it) => it.id === k) && v && typeof v === 'object')
+            .map(([k, v]) => [k, { done: !!v.done, w: String(v.w || '').slice(0, 6) }]))
+          : {},
       }));
       if (Array.isArray(data.areas)) areas = data.areas.map(String);
       persist(); persistAreas();
@@ -456,7 +620,9 @@ $('form').onsubmit = (e) => { e.preventDefault(); saveDraft(); };
 $('deleteBtn').onclick = deleteDraft;
 $('addAreaBtn').onclick = addArea;
 $('newArea').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addArea(); } });
-$('fTitle').addEventListener('input', renderTitleChips);
+$('fTitle').addEventListener('input', () => { renderTitleChips(); renderStrength(); });
+$('fDate').addEventListener('change', renderStrength);
+$('fStart').addEventListener('change', renderStrength);
 $('statusSeg').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b || !draft) return;
