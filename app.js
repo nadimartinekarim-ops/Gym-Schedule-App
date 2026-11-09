@@ -401,6 +401,7 @@ function renderChecklist() {
     inp.oninput = () => {
       draft.log[it.id] = { ...(draft.log[it.id] || {}), w: inp.value.trim() };
     };
+    inp.onchange = autosave;
     const toggle = () => {
       const cur = draft.log[it.id] || {};
       draft.log[it.id] = { ...cur, done: !cur.done };
@@ -415,6 +416,17 @@ function renderChecklist() {
   $('checkBar').style.width = `${(n / total) * 100}%`;
 }
 
+// Ticks and weights on an existing session save instantly, so closing mid-workout loses nothing.
+function autosave() {
+  if (!editing) return;
+  const i = sessions.findIndex((s) => s.id === draft.id);
+  if (i < 0) return;
+  sessions[i] = { ...sessions[i], split: draft.split, log: cloneLog(draft.log), status: draft.status,
+    pain: draft.status === 'done' ? sessions[i].pain : null };
+  persist();
+  render();
+}
+
 function afterTick() {
   const split = SPLIT_BY_ID[draft.split];
   const all = doneCount(draft) === split.items.length;
@@ -427,6 +439,7 @@ function afterTick() {
     renderStatus();
   }
   renderChecklist();
+  autosave();
 }
 
 function renderPain() {
